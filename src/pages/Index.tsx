@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +11,6 @@ import ApiKeyManager from "@/components/ApiKeyManager";
 import RequestViewer from "@/components/RequestViewer";
 import ApiKeyInput from "@/components/ApiKeyInput";
 import { ImageGenerationService } from "@/services/imageGeneration";
-
 const Index = () => {
   const [activeTab, setActiveTab] = useState("generate");
   const [generatedImages, setGeneratedImages] = useState<Array<{
@@ -26,7 +24,6 @@ const Index = () => {
   const [currentResponse, setCurrentResponse] = useState<any>(null);
   const [apiKey, setApiKey] = useState<string>("");
   const [imageService, setImageService] = useState<ImageGenerationService | null>(null);
-
   useEffect(() => {
     const savedApiKey = localStorage.getItem('runware_api_key');
     if (savedApiKey) {
@@ -34,20 +31,17 @@ const Index = () => {
       setImageService(new ImageGenerationService(savedApiKey));
     }
   }, []);
-
   const handleApiKeySet = (newApiKey: string) => {
     setApiKey(newApiKey);
     const service = new ImageGenerationService(newApiKey);
     setImageService(service);
     toast.success("API key set successfully!");
   };
-
   const handleImageGeneration = async (prompt: string, settings: any) => {
     if (!imageService) {
       toast.error("Please set your API key first");
       return;
     }
-
     try {
       const mockRequest = {
         method: "POST",
@@ -70,14 +64,12 @@ const Index = () => {
           ...settings
         }
       };
-
       setCurrentRequest(mockRequest);
       toast.info(`Generating ${settings.numImages || 3} images...`);
 
       // Generate multiple images
       const numImages = settings.numImages || 3;
       const newImages = [];
-
       for (let i = 0; i < numImages; i++) {
         const result = await imageService.generateImage({
           prompt,
@@ -85,13 +77,14 @@ const Index = () => {
           size: settings.size,
           quality: settings.quality,
           format: settings.format,
-          numImages: 1, // Generate one at a time to get different variations
-          seed: settings.seed ? parseInt(settings.seed) + i : undefined, // Vary seed for different results
+          numImages: 1,
+          // Generate one at a time to get different variations
+          seed: settings.seed ? parseInt(settings.seed) + i : undefined,
+          // Vary seed for different results
           steps: settings.steps,
           cfgScale: settings.cfgScale,
           model: settings.model
         });
-
         const newImage = {
           id: result.imageUUID,
           url: result.imageURL,
@@ -101,7 +94,6 @@ const Index = () => {
         };
         newImages.push(newImage);
       }
-
       const mockResponse = {
         taskType: "imageInference",
         taskUUID: crypto.randomUUID(),
@@ -115,19 +107,16 @@ const Index = () => {
         positivePrompt: prompt,
         totalImages: newImages.length
       };
-
       setCurrentResponse(mockResponse);
 
       // Add all new images to gallery
       setGeneratedImages(prev => [...newImages, ...prev]);
-      
       toast.success(`${newImages.length} images generated successfully!`);
     } catch (error) {
       console.error("Image generation error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to generate images");
     }
   };
-
   const handleLatestImageDownload = async (image: any) => {
     try {
       const response = await fetch(image.url);
@@ -150,20 +139,12 @@ const Index = () => {
   // Get latest batch of images (same prompt and timestamp)
   const getLatestImageBatch = () => {
     if (generatedImages.length === 0) return [];
-    
     const latestTimestamp = generatedImages[0].timestamp;
     const latestPrompt = generatedImages[0].prompt;
-    
-    return generatedImages.filter(img => 
-      img.timestamp.getTime() === latestTimestamp.getTime() && 
-      img.prompt === latestPrompt
-    );
+    return generatedImages.filter(img => img.timestamp.getTime() === latestTimestamp.getTime() && img.prompt === latestPrompt);
   };
-
   const latestBatch = getLatestImageBatch();
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+  return <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -171,9 +152,7 @@ const Index = () => {
             <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Artify API Studio
-            </h1>
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">Artify Studio</h1>
           </div>
           <p className="text-xl text-slate-200 max-w-2xl mx-auto">
             Professional AI image generation API testing platform. Create, test, and integrate with powerful AI models.
@@ -195,11 +174,9 @@ const Index = () => {
         </div>
 
         {/* API Key Input */}
-        {!apiKey && (
-          <div className="mb-8">
+        {!apiKey && <div className="mb-8">
             <ApiKeyInput onApiKeySet={handleApiKeySet} />
-          </div>
-        )}
+          </div>}
 
         {/* Main Interface */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -235,8 +212,7 @@ const Index = () => {
             </Card>
 
             {/* Latest Generated Images */}
-            {latestBatch.length > 0 && (
-              <Card className="bg-slate-800/50 border-slate-700">
+            {latestBatch.length > 0 && <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Image className="w-5 h-5 text-green-400" />
@@ -262,29 +238,17 @@ const Index = () => {
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {latestBatch.map((image, index) => (
-                        <div key={image.id} className="space-y-2">
-                          <img 
-                            src={image.url} 
-                            alt={`${image.prompt} - Variation ${index + 1}`}
-                            className="w-full h-48 object-cover rounded-lg border border-slate-600"
-                          />
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="w-full border-slate-600 text-black hover:bg-slate-700 hover:text-white bg-white"
-                            onClick={() => handleLatestImageDownload(image)}
-                          >
+                      {latestBatch.map((image, index) => <div key={image.id} className="space-y-2">
+                          <img src={image.url} alt={`${image.prompt} - Variation ${index + 1}`} className="w-full h-48 object-cover rounded-lg border border-slate-600" />
+                          <Button variant="outline" size="sm" className="w-full border-slate-600 text-black hover:bg-slate-700 hover:text-white bg-white" onClick={() => handleLatestImageDownload(image)}>
                             <Download className="w-4 h-4 mr-2" />
                             Download
                           </Button>
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
                   </div>
                 </CardContent>
-              </Card>
-            )}
+              </Card>}
           </TabsContent>
 
           <TabsContent value="gallery">
@@ -309,9 +273,6 @@ const Index = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
-
