@@ -28,9 +28,23 @@ const ImageGallery = ({ images }: ImageGalleryProps) => {
     image.prompt.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleDownload = (image: Image) => {
-    // Simulate download
-    toast.success("Image downloaded successfully!");
+  const handleDownload = async (image: Image) => {
+    try {
+      const response = await fetch(image.url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `generated-image-${image.id}.${image.settings.format || 'webp'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Image downloaded successfully!");
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast.error("Failed to download image");
+    }
   };
 
   const handleCopyPrompt = (prompt: string) => {
@@ -149,7 +163,7 @@ const ImageGallery = ({ images }: ImageGalleryProps) => {
                             <Button
                               onClick={() => handleDownload(image)}
                               size="sm"
-                              className="bg-purple-500 hover:bg-purple-600"
+                              className="bg-purple-500 hover:bg-purple-600 text-black"
                             >
                               <Download className="w-4 h-4 mr-2" />
                               Download

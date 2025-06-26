@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,6 +115,25 @@ const Index = () => {
     }
   };
 
+  const handleLatestImageDownload = async (image: any) => {
+    try {
+      const response = await fetch(image.url);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `generated-image-${image.id}.${image.settings.format || 'webp'}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Image downloaded successfully!");
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast.error("Failed to download image");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="container mx-auto px-4 py-8">
@@ -226,13 +243,8 @@ const Index = () => {
                       <Button 
                         variant="outline" 
                         size="sm" 
-                        className="border-slate-600 text-slate-200 hover:bg-slate-700"
-                        onClick={() => {
-                          const link = document.createElement('a');
-                          link.href = generatedImages[0].url;
-                          link.download = `generated-image-${generatedImages[0].id}.webp`;
-                          link.click();
-                        }}
+                        className="border-slate-600 text-black hover:bg-slate-700 bg-white"
+                        onClick={() => handleLatestImageDownload(generatedImages[0])}
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download
@@ -271,4 +283,3 @@ const Index = () => {
 };
 
 export default Index;
-
