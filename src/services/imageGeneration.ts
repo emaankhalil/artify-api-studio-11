@@ -56,6 +56,7 @@ export class ImageGenerationService {
         
         if (response.error || response.errors) {
           const errorMessage = response.errorMessage || response.errors?.[0]?.message || "An error occurred";
+          console.error("API Error:", errorMessage);
           toast.error(errorMessage);
           return;
         }
@@ -122,12 +123,15 @@ export class ImageGenerationService {
     const taskUUID = crypto.randomUUID();
     const [width, height] = params.size?.split('x').map(Number) || [1024, 1024];
     
+    // Validate and format negative prompt - only include if it's between 2-3000 characters
+    const negativePrompt = params.negativePrompt?.trim();
+    const hasValidNegativePrompt = negativePrompt && negativePrompt.length >= 2 && negativePrompt.length <= 3000;
+    
     return new Promise((resolve, reject) => {
-      const message = [{
+      const message: any = {
         taskType: "imageInference",
         taskUUID,
         positivePrompt: params.prompt,
-        negativePrompt: params.negativePrompt || "",
         model: params.model || "runware:100@1",
         width,
         height,
@@ -136,25 +140,33 @@ export class ImageGenerationService {
         steps: params.steps || 4,
         CFGScale: params.cfgScale || 1,
         scheduler: "FlowMatchEulerDiscreteScheduler",
-        seed: params.seed ? parseInt(params.seed) : undefined,
-      }];
+      };
 
-      // Remove undefined values
-      Object.keys(message[0]).forEach(key => {
-        if (message[0][key] === undefined) {
-          delete message[0][key];
+      // Only add negative prompt if it meets the length requirements
+      if (hasValidNegativePrompt) {
+        message.negativePrompt = negativePrompt;
+      }
+
+      // Only add seed if provided and valid
+      if (params.seed && params.seed.trim()) {
+        const seedNumber = parseInt(params.seed);
+        if (!isNaN(seedNumber)) {
+          message.seed = seedNumber;
         }
-      });
+      }
+
+      console.log("Sending image generation request:", message);
 
       this.messageCallbacks.set(taskUUID, (data) => {
         if (data.error) {
           reject(new Error(data.errorMessage || 'Generation failed'));
         } else {
+          console.log("Image generation successful:", data);
           resolve(data);
         }
       });
 
-      this.ws?.send(JSON.stringify(message));
+      this.ws?.send(JSON.stringify([message]));
     });
   }
 
