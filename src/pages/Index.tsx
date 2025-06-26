@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -156,7 +157,7 @@ const Index = () => {
 
         {/* Main Interface */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/50 border-slate-700">
+          <TabsList className="grid w-full grid-cols-3 mb-8 bg-slate-800/50 border-slate-700">
             <TabsTrigger value="generate" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">
               <Sparkles className="w-4 h-4 mr-2" />
               Generate
@@ -165,40 +166,27 @@ const Index = () => {
               <Eye className="w-4 h-4 mr-2" />
               Gallery
             </TabsTrigger>
+            <TabsTrigger value="api" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">
+              <Code className="w-4 h-4 mr-2" />
+              API
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="generate" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-purple-400" />
-                    Image Generation
-                  </CardTitle>
-                  <CardDescription className="text-slate-400">
-                    Create stunning images from text prompts using advanced AI models
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <PromptForm onGenerate={handleImageGeneration} disabled={!apiKey} />
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Code className="w-5 h-5 text-blue-400" />
-                    Request & Response
-                  </CardTitle>
-                  <CardDescription className="text-slate-400">
-                    View the API request and response in real-time
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <RequestViewer request={currentRequest} response={currentResponse} />
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-400" />
+                  Image Generation
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Create stunning images from text prompts using advanced AI models
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <PromptForm onGenerate={handleImageGeneration} disabled={!apiKey} />
+              </CardContent>
+            </Card>
 
             {/* Latest Generated Image */}
             {generatedImages.length > 0 && (
@@ -257,6 +245,23 @@ const Index = () => {
 
           <TabsContent value="gallery">
             <ImageGallery images={generatedImages} />
+          </TabsContent>
+
+          <TabsContent value="api">
+            <Card className="bg-slate-800/50 border-slate-700">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <Code className="w-5 h-5 text-blue-400" />
+                  Request & Response
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  View the API request and response in real-time
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RequestViewer request={currentRequest} response={currentResponse} />
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
