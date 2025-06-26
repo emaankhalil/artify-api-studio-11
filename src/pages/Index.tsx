@@ -1,14 +1,16 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Zap, Image, Code, Settings, Sparkles, Eye, Download } from "lucide-react";
+import { toast } from "sonner";
 import PromptForm from "@/components/PromptForm";
 import ImageGallery from "@/components/ImageGallery";
 import ApiKeyManager from "@/components/ApiKeyManager";
 import RequestViewer from "@/components/RequestViewer";
+import ApiKeyInput from "@/components/ApiKeyInput";
+import { ImageGenerationService } from "@/services/imageGeneration";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("generate");
@@ -21,45 +23,96 @@ const Index = () => {
   }>>([]);
   const [currentRequest, setCurrentRequest] = useState<any>(null);
   const [currentResponse, setCurrentResponse] = useState<any>(null);
+  const [apiKey, setApiKey] = useState<string>("");
+  const [imageService, setImageService] = useState<ImageGenerationService | null>(null);
 
-  const handleImageGeneration = (prompt: string, settings: any) => {
-    // Simulate API call
-    const mockRequest = {
-      method: "POST",
-      url: "/v1/images/generate",
-      headers: {
-        "Authorization": "Bearer sk-...",
-        "Content-Type": "application/json"
-      },
-      body: {
+  useEffect(() => {
+    const savedApiKey = localStorage.getItem('runware_api_key');
+    if (savedApiKey) {
+      setApiKey(savedApiKey);
+      setImageService(new ImageGenerationService(savedApiKey));
+    }
+  }, []);
+
+  const handleApiKeySet = (newApiKey: string) => {
+    setApiKey(newApiKey);
+    const service = new ImageGenerationService(newApiKey);
+    setImageService(service);
+    toast.success("API key set successfully!");
+  };
+
+  const handleImageGeneration = async (prompt: string, settings: any) => {
+    if (!imageService) {
+      toast.error("Please set your API key first");
+      return;
+    }
+
+    try {
+      const mockRequest = {
+        method: "POST",
+        url: "wss://ws-api.runware.ai/v1",
+        headers: {
+          "Authorization": "Bearer " + apiKey.substring(0, 10) + "...",
+          "Content-Type": "application/json"
+        },
+        body: {
+          taskType: "imageInference",
+          positivePrompt: prompt,
+          negativePrompt: settings.negativePrompt || "",
+          model: settings.model || "runware:100@1",
+          width: parseInt(settings.size?.split('x')[0] || "1024"),
+          height: parseInt(settings.size?.split('x')[1] || "1024"),
+          outputFormat: settings.format?.toUpperCase() || "WEBP",
+          steps: settings.steps || 4,
+          CFGScale: settings.cfgScale || 1,
+          ...settings
+        }
+      };
+
+      setCurrentRequest(mockRequest);
+      toast.info("Generating image...");
+
+      const result = await imageService.generateImage({
         prompt,
-        ...settings
-      }
-    };
+        negativePrompt: settings.negativePrompt,
+        size: settings.size,
+        quality: settings.quality,
+        format: settings.format,
+        numImages: settings.numImages,
+        seed: settings.seed,
+        steps: settings.steps,
+        cfgScale: settings.cfgScale,
+        model: settings.model
+      });
 
-    const mockResponse = {
-      generation_id: `gen_${Date.now()}`,
-      status: "completed",
-      images: [{
-        image_id: `img_${Date.now()}`,
-        url: "https://picsum.photos/1024/1024?random=" + Date.now(),
-        status: "completed",
-        revised_prompt: prompt
-      }]
-    };
+      const mockResponse = {
+        taskType: "imageInference",
+        taskUUID: crypto.randomUUID(),
+        imageUUID: result.imageUUID,
+        imageURL: result.imageURL,
+        NSFWContent: result.NSFWContent,
+        cost: result.cost,
+        seed: result.seed,
+        positivePrompt: prompt
+      };
 
-    setCurrentRequest(mockRequest);
-    setCurrentResponse(mockResponse);
+      setCurrentResponse(mockResponse);
 
-    // Add to gallery
-    const newImage = {
-      id: mockResponse.images[0].image_id,
-      url: mockResponse.images[0].url,
-      prompt,
-      timestamp: new Date(),
-      settings
-    };
-    setGeneratedImages(prev => [newImage, ...prev]);
+      // Add to gallery
+      const newImage = {
+        id: result.imageUUID,
+        url: result.imageURL,
+        prompt,
+        timestamp: new Date(),
+        settings
+      };
+      setGeneratedImages(prev => [newImage, ...prev]);
+      
+      toast.success("Image generated successfully!");
+    } catch (error) {
+      console.error("Image generation error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to generate image");
+    }
   };
 
   return (
@@ -93,6 +146,13 @@ const Index = () => {
             </Badge>
           </div>
         </div>
+
+        {/* API Key Input */}
+        {!apiKey && (
+          <div className="mb-8">
+            <ApiKeyInput onApiKeySet={handleApiKeySet} />
+          </div>
+        )}
 
         {/* Main Interface */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -128,7 +188,7 @@ const Index = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <PromptForm onGenerate={handleImageGeneration} />
+                  <PromptForm onGenerate={handleImageGeneration} disabled={!apiKey} />
                 </CardContent>
               </Card>
 
@@ -179,10 +239,20 @@ const Index = () => {
                           {generatedImages[0].settings.quality || "high"}
                         </Badge>
                         <Badge variant="outline" className="border-green-500/30 text-green-300">
-                          {generatedImages[0].settings.format || "png"}
+                          {generatedImages[0].settings.format || "webp"}
                         </Badge>
                       </div>
-                      <Button variant="outline" size="sm" className="border-slate-600 text-slate-300 hover:bg-slate-700">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="border-slate-600 text-slate-300 hover:bg-slate-700"
+                        onClick={() => {
+                          const link = document.createElement('a');
+                          link.href = generatedImages[0].url;
+                          link.download = `generated-image-${generatedImages[0].id}.webp`;
+                          link.click();
+                        }}
+                      >
                         <Download className="w-4 h-4 mr-2" />
                         Download
                       </Button>
@@ -202,7 +272,10 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="settings">
-            <ApiKeyManager />
+            <div className="space-y-6">
+              <ApiKeyInput onApiKeySet={handleApiKeySet} currentApiKey={apiKey} />
+              <ApiKeyManager />
+            </div>
           </TabsContent>
         </Tabs>
       </div>

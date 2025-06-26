@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,34 +13,35 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 
 interface PromptFormProps {
   onGenerate: (prompt: string, settings: any) => void;
+  disabled?: boolean;
 }
 
-const PromptForm = ({ onGenerate }: PromptFormProps) => {
+const PromptForm = ({ onGenerate, disabled = false }: PromptFormProps) => {
   const [prompt, setPrompt] = useState("");
   const [negativePrompt, setNegativePrompt] = useState("");
   const [settings, setSettings] = useState({
     size: "1024x1024",
     quality: "high",
-    format: "png",
+    format: "webp",
     numImages: 1,
     seed: "",
-    steps: 20,
-    cfgScale: 7,
-    model: "stable-diffusion-xl"
+    steps: 4,
+    cfgScale: 1,
+    model: "runware:100@1"
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) return;
+    if (!prompt.trim() || disabled) return;
     
     setIsGenerating(true);
     
-    // Simulate API delay
-    setTimeout(() => {
-      onGenerate(prompt, settings);
+    try {
+      await onGenerate(prompt, { ...settings, negativePrompt });
+    } finally {
       setIsGenerating(false);
-    }, 2000);
+    }
   };
 
   const promptExamples = [
@@ -65,6 +65,7 @@ const PromptForm = ({ onGenerate }: PromptFormProps) => {
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Describe the image you want to generate..."
           className="min-h-24 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 resize-none"
+          disabled={disabled}
         />
         <div className="flex flex-wrap gap-2">
           {promptExamples.map((example, index) => (
@@ -74,6 +75,7 @@ const PromptForm = ({ onGenerate }: PromptFormProps) => {
               size="sm"
               onClick={() => setPrompt(example)}
               className="text-xs border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+              disabled={disabled}
             >
               {example.substring(0, 30)}...
             </Button>
@@ -85,7 +87,7 @@ const PromptForm = ({ onGenerate }: PromptFormProps) => {
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label className="text-white">Size</Label>
-          <Select value={settings.size} onValueChange={(value) => setSettings({...settings, size: value})}>
+          <Select value={settings.size} onValueChange={(value) => setSettings({...settings, size: value})} disabled={disabled}>
             <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
               <SelectValue />
             </SelectTrigger>
@@ -99,15 +101,15 @@ const PromptForm = ({ onGenerate }: PromptFormProps) => {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-white">Quality</Label>
-          <Select value={settings.quality} onValueChange={(value) => setSettings({...settings, quality: value})}>
+          <Label className="text-white">Format</Label>
+          <Select value={settings.format} onValueChange={(value) => setSettings({...settings, format: value})} disabled={disabled}>
             <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-slate-800 border-slate-600">
-              <SelectItem value="standard">Standard</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="ultra">Ultra</SelectItem>
+              <SelectItem value="webp">WebP</SelectItem>
+              <SelectItem value="png">PNG</SelectItem>
+              <SelectItem value="jpeg">JPEG</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -116,7 +118,7 @@ const PromptForm = ({ onGenerate }: PromptFormProps) => {
       {/* Advanced Settings */}
       <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
         <CollapsibleTrigger asChild>
-          <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-700">
+          <Button variant="ghost" className="text-slate-300 hover:text-white hover:bg-slate-700" disabled={disabled}>
             <Settings2 className="w-4 h-4 mr-2" />
             Advanced Settings
           </Button>
@@ -132,22 +134,8 @@ const PromptForm = ({ onGenerate }: PromptFormProps) => {
                   onChange={(e) => setNegativePrompt(e.target.value)}
                   placeholder="What to avoid in the image..."
                   className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                  disabled={disabled}
                 />
-              </div>
-
-              {/* Model Selection */}
-              <div className="space-y-2">
-                <Label className="text-white">Model</Label>
-                <Select value={settings.model} onValueChange={(value) => setSettings({...settings, model: value})}>
-                  <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-800 border-slate-600">
-                    <SelectItem value="stable-diffusion-xl">Stable Diffusion XL</SelectItem>
-                    <SelectItem value="dalle-3">DALL-E 3</SelectItem>
-                    <SelectItem value="midjourney-v6">Midjourney v6</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Sliders */}
@@ -159,10 +147,11 @@ const PromptForm = ({ onGenerate }: PromptFormProps) => {
                   <Slider
                     value={[settings.steps]}
                     onValueChange={(value) => setSettings({...settings, steps: value[0]})}
-                    min={10}
-                    max={50}
+                    min={1}
+                    max={20}
                     step={1}
                     className="w-full"
+                    disabled={disabled}
                   />
                 </div>
 
@@ -174,38 +163,24 @@ const PromptForm = ({ onGenerate }: PromptFormProps) => {
                     value={[settings.cfgScale]}
                     onValueChange={(value) => setSettings({...settings, cfgScale: value[0]})}
                     min={1}
-                    max={20}
+                    max={10}
                     step={0.5}
                     className="w-full"
+                    disabled={disabled}
                   />
                 </div>
               </div>
 
               {/* Additional Options */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-white">Seed (Optional)</Label>
-                  <Input
-                    value={settings.seed}
-                    onChange={(e) => setSettings({...settings, seed: e.target.value})}
-                    placeholder="Random seed"
-                    className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-white">Format</Label>
-                  <Select value={settings.format} onValueChange={(value) => setSettings({...settings, format: value})}>
-                    <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem value="png">PNG</SelectItem>
-                      <SelectItem value="jpeg">JPEG</SelectItem>
-                      <SelectItem value="webp">WebP</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-2">
+                <Label className="text-white">Seed (Optional)</Label>
+                <Input
+                  value={settings.seed}
+                  onChange={(e) => setSettings({...settings, seed: e.target.value})}
+                  placeholder="Random seed for reproducible results"
+                  className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400"
+                  disabled={disabled}
+                />
               </div>
             </CardContent>
           </Card>
@@ -215,13 +190,18 @@ const PromptForm = ({ onGenerate }: PromptFormProps) => {
       {/* Generate Button */}
       <Button 
         onClick={handleGenerate}
-        disabled={!prompt.trim() || isGenerating}
+        disabled={!prompt.trim() || isGenerating || disabled}
         className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-3"
       >
         {isGenerating ? (
           <>
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
             Generating...
+          </>
+        ) : disabled ? (
+          <>
+            <Sparkles className="w-4 h-4 mr-2" />
+            Set API Key to Generate
           </>
         ) : (
           <>
