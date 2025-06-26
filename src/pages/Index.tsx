@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,53 +66,65 @@ const Index = () => {
           outputFormat: settings.format?.toUpperCase() || "WEBP",
           steps: settings.steps || 4,
           CFGScale: settings.cfgScale || 1,
+          numberofImages: settings.numImages || 3,
           ...settings
         }
       };
 
       setCurrentRequest(mockRequest);
-      toast.info("Generating image...");
+      toast.info(`Generating ${settings.numImages || 3} images...`);
 
-      const result = await imageService.generateImage({
-        prompt,
-        negativePrompt: settings.negativePrompt,
-        size: settings.size,
-        quality: settings.quality,
-        format: settings.format,
-        numImages: settings.numImages,
-        seed: settings.seed,
-        steps: settings.steps,
-        cfgScale: settings.cfgScale,
-        model: settings.model
-      });
+      // Generate multiple images
+      const numImages = settings.numImages || 3;
+      const newImages = [];
+
+      for (let i = 0; i < numImages; i++) {
+        const result = await imageService.generateImage({
+          prompt,
+          negativePrompt: settings.negativePrompt,
+          size: settings.size,
+          quality: settings.quality,
+          format: settings.format,
+          numImages: 1, // Generate one at a time to get different variations
+          seed: settings.seed ? parseInt(settings.seed) + i : undefined, // Vary seed for different results
+          steps: settings.steps,
+          cfgScale: settings.cfgScale,
+          model: settings.model
+        });
+
+        const newImage = {
+          id: result.imageUUID,
+          url: result.imageURL,
+          prompt,
+          timestamp: new Date(),
+          settings
+        };
+        newImages.push(newImage);
+      }
 
       const mockResponse = {
         taskType: "imageInference",
         taskUUID: crypto.randomUUID(),
-        imageUUID: result.imageUUID,
-        imageURL: result.imageURL,
-        NSFWContent: result.NSFWContent,
-        cost: result.cost,
-        seed: result.seed,
-        positivePrompt: prompt
+        images: newImages.map(img => ({
+          imageUUID: img.id,
+          imageURL: img.url,
+          NSFWContent: false,
+          cost: 0.01,
+          seed: Math.floor(Math.random() * 1000000)
+        })),
+        positivePrompt: prompt,
+        totalImages: newImages.length
       };
 
       setCurrentResponse(mockResponse);
 
-      // Add to gallery
-      const newImage = {
-        id: result.imageUUID,
-        url: result.imageURL,
-        prompt,
-        timestamp: new Date(),
-        settings
-      };
-      setGeneratedImages(prev => [newImage, ...prev]);
+      // Add all new images to gallery
+      setGeneratedImages(prev => [...newImages, ...prev]);
       
-      toast.success("Image generated successfully!");
+      toast.success(`${newImages.length} images generated successfully!`);
     } catch (error) {
       console.error("Image generation error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to generate image");
+      toast.error(error instanceof Error ? error.message : "Failed to generate images");
     }
   };
 
@@ -133,6 +146,21 @@ const Index = () => {
       toast.error("Failed to download image");
     }
   };
+
+  // Get latest batch of images (same prompt and timestamp)
+  const getLatestImageBatch = () => {
+    if (generatedImages.length === 0) return [];
+    
+    const latestTimestamp = generatedImages[0].timestamp;
+    const latestPrompt = generatedImages[0].prompt;
+    
+    return generatedImages.filter(img => 
+      img.timestamp.getTime() === latestTimestamp.getTime() && 
+      img.prompt === latestPrompt
+    );
+  };
+
+  const latestBatch = getLatestImageBatch();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -198,7 +226,7 @@ const Index = () => {
                   Image Generation
                 </CardTitle>
                 <CardDescription className="text-slate-200">
-                  Create stunning images from text prompts using advanced AI models
+                  Create stunning images from text prompts using advanced AI models. Each prompt generates multiple variations.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -206,49 +234,52 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Latest Generated Image */}
-            {generatedImages.length > 0 && (
+            {/* Latest Generated Images */}
+            {latestBatch.length > 0 && (
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardHeader>
                   <CardTitle className="text-white flex items-center gap-2">
                     <Image className="w-5 h-5 text-green-400" />
-                    Latest Generation
+                    Latest Generation ({latestBatch.length} images)
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-col md:flex-row gap-4">
-                    <div className="flex-shrink-0">
-                      <img 
-                        src={generatedImages[0].url} 
-                        alt={generatedImages[0].prompt}
-                        className="w-full md:w-64 h-64 object-cover rounded-lg border border-slate-600"
-                      />
-                    </div>
-                    <div className="flex-1 space-y-3">
-                      <div>
-                        <h3 className="text-lg font-semibold text-white mb-2">Generated Image</h3>
-                        <p className="text-slate-200 text-sm">{generatedImages[0].prompt}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-2">Generated Images</h3>
+                      <p className="text-slate-200 text-sm mb-4">{latestBatch[0].prompt}</p>
+                      <div className="flex flex-wrap gap-2 mb-4">
                         <Badge variant="outline" className="border-purple-500/30 text-purple-200">
-                          {generatedImages[0].settings.size || "1024x1024"}
+                          {latestBatch[0].settings.size || "1024x1024"}
                         </Badge>
                         <Badge variant="outline" className="border-blue-500/30 text-blue-200">
-                          {generatedImages[0].settings.quality || "high"}
+                          {latestBatch[0].settings.quality || "high"}
                         </Badge>
                         <Badge variant="outline" className="border-green-500/30 text-green-200">
-                          {generatedImages[0].settings.format || "webp"}
+                          {latestBatch[0].settings.format || "webp"}
                         </Badge>
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="border-slate-600 text-black hover:bg-slate-700 bg-white"
-                        onClick={() => handleLatestImageDownload(generatedImages[0])}
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download
-                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {latestBatch.map((image, index) => (
+                        <div key={image.id} className="space-y-2">
+                          <img 
+                            src={image.url} 
+                            alt={`${image.prompt} - Variation ${index + 1}`}
+                            className="w-full h-48 object-cover rounded-lg border border-slate-600"
+                          />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full border-slate-600 text-black hover:bg-slate-700 hover:text-white bg-white"
+                            onClick={() => handleLatestImageDownload(image)}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Download
+                          </Button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </CardContent>
@@ -283,3 +314,4 @@ const Index = () => {
 };
 
 export default Index;
+

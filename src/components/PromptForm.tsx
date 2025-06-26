@@ -1,4 +1,5 @@
 
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +25,7 @@ const PromptForm = ({ onGenerate, disabled = false }: PromptFormProps) => {
     size: "1024x1024",
     quality: "high",
     format: "webp",
-    numImages: 1,
+    numImages: 3,
     seed: "",
     steps: 4,
     cfgScale: 1,
@@ -116,6 +117,23 @@ const PromptForm = ({ onGenerate, disabled = false }: PromptFormProps) => {
         </div>
       </div>
 
+      {/* Number of Images Setting */}
+      <div className="space-y-2">
+        <Label className="text-white flex items-center justify-between">
+          Number of Images <Badge variant="outline" className="border-slate-500 text-slate-300">{settings.numImages}</Badge>
+        </Label>
+        <Slider
+          value={[settings.numImages]}
+          onValueChange={(value) => setSettings({...settings, numImages: value[0]})}
+          min={2}
+          max={4}
+          step={1}
+          className="w-full"
+          disabled={disabled}
+        />
+        <p className="text-xs text-slate-400">Generate multiple variations of your prompt</p>
+      </div>
+
       {/* Advanced Settings */}
       <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
         <CollapsibleTrigger asChild>
@@ -197,7 +215,7 @@ const PromptForm = ({ onGenerate, disabled = false }: PromptFormProps) => {
         {isGenerating ? (
           <>
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            Generating...
+            Generating {settings.numImages} Images...
           </>
         ) : disabled ? (
           <>
@@ -207,7 +225,7 @@ const PromptForm = ({ onGenerate, disabled = false }: PromptFormProps) => {
         ) : (
           <>
             <Sparkles className="w-4 h-4 mr-2" />
-            Generate Image
+            Generate {settings.numImages} Images
           </>
         )}
       </Button>
@@ -216,3 +234,4 @@ const PromptForm = ({ onGenerate, disabled = false }: PromptFormProps) => {
 };
 
 export default PromptForm;
+
