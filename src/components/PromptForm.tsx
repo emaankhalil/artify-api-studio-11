@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,7 +75,7 @@ const PromptForm = ({ onGenerate, disabled = false }: PromptFormProps) => {
               variant="outline"
               size="sm"
               onClick={() => setPrompt(example)}
-              className="text-xs border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white"
+              className="text-xs border-slate-600 text-black hover:bg-slate-700 hover:text-white bg-white"
               disabled={disabled}
             >
               {example.substring(0, 30)}...
