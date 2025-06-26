@@ -156,7 +156,7 @@ const Index = () => {
 
         {/* Main Interface */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8 bg-slate-800/50 border-slate-700">
+          <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-800/50 border-slate-700">
             <TabsTrigger value="generate" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">
               <Sparkles className="w-4 h-4 mr-2" />
               Generate
@@ -164,14 +164,6 @@ const Index = () => {
             <TabsTrigger value="gallery" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">
               <Eye className="w-4 h-4 mr-2" />
               Gallery
-            </TabsTrigger>
-            <TabsTrigger value="api" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">
-              <Code className="w-4 h-4 mr-2" />
-              API
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white">
-              <Settings className="w-4 h-4 mr-2" />
-              Settings
             </TabsTrigger>
           </TabsList>
 
@@ -265,17 +257,6 @@ const Index = () => {
 
           <TabsContent value="gallery">
             <ImageGallery images={generatedImages} />
-          </TabsContent>
-
-          <TabsContent value="api">
-            <RequestViewer request={currentRequest} response={currentResponse} showDocumentation={true} />
-          </TabsContent>
-
-          <TabsContent value="settings">
-            <div className="space-y-6">
-              <ApiKeyInput onApiKeySet={handleApiKeySet} currentApiKey={apiKey} />
-              <ApiKeyManager />
-            </div>
           </TabsContent>
         </Tabs>
       </div>
